@@ -1,25 +1,93 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+title: "Fitness Data"
+output: html_document
 ---
 
+```{r setup, include=FALSE}
+Sys.setlocale("LC_TIME","English")
+knitr::opts_chunk$set(echo = TRUE)
+```
+##1. Loading and preprocessing the data
 
-## Loading and preprocessing the data
+Unzip the data and load it in a data frame
+```{r}
+unzip("activity.zip")
+activitydata <- read.csv("activity.csv")
+```
 
+##What is mean total number of steps taken per day?
 
+Make a sum of all steps per day.
+```{r}
+library(ggplot2)
+StepsPerDay <- aggregate(steps ~ date, data = activitydata, FUN = sum)
+qplot(StepsPerDay$steps, main = "Steps taken per day", xlab = "steps", 
+      binwidth = 500)
+rmean <- mean(StepsPerDay$steps)
+rmedian <- median(StepsPerDay$steps)
+```
 
-## What is mean total number of steps taken per day?
+The average is `r rmean` and the median is `r rmedian`
 
+##What is the average daily activity pattern?
 
+Calculate the average for the steps for each interval
+```{r}
+stepsPerInterval<- aggregate(steps ~ interval, data = activitydata, FUN = mean)
+qplot(stepsPerInterval$interval, stepsPerInterval$steps,
+main = "Average daily steps", xlab = "interval",ylab = "steps", geom = "line")
+selection <- max(stepsPerInterval$steps) == stepsPerInterval$steps
+maxSteps <- stepsPerInterval$interval[selection]
+```
 
-## What is the average daily activity pattern?
-
-
+The maximum steps are in this interval `r maxSteps`
 
 ## Imputing missing values
 
+How many missing values in the data frame
+```{r}
+sapply(activitydata, function(x) sum(is.na(x)))
+```
 
+Only in the steps column datas are missing. This missing values are replaced,
+with the steps per interval average. 
 
-## Are there differences in activity patterns between weekdays and weekends?
+```{r}
+imputed_data <- transform(activitydata, steps = ifelse(is.na(activitydata$steps), stepsPerInterval$steps[match(activitydata$interval,
+                        stepsPerInterval$interval)], activitydata$steps))
+imputed_dataDay <- aggregate(steps~ date, data = imputed_data, FUN = sum)
+qplot(imputed_dataDay$steps, main = "Steps taken per day", xlab = "steps",
+      binwidth = 500)
+rimputmean <- mean(imputed_dataDay$steps)
+rimputmedian <- median(imputed_dataDay$steps)
+diffmean <- rimputmean - rmean
+diffmedian <- rimputmedian - rmedian
+```
+
+The average is `r rimputmean` the median is `r rimputmedian`
+
+This makes an average difference from `r diffmean`
+
+This makes an median difference from `r diffmedian`
+
+##Are there differences in activity patterns between weekdays and weekends?
+
+On weekdays there is a higher peak in the morning, in the weekend there is 
+more overall activity.
+
+```{r}
+weekdays <- c("Monday", "Tuesday", "Wednesday", "Thursday", 
+              "Friday")
+activitydata$EndOrDay <- as.factor(ifelse(is.element
+                                         (weekdays(as.Date(activitydata$date))
+                                                 ,weekdays)
+                                         , "Weekday", "Weekend"))
+
+stepsByInterval <- aggregate(steps ~ interval + EndOrDay, data = activitydata,
+                             FUN = mean)
+library(lattice)
+xyplot(stepsByInterval$steps ~ stepsByInterval$interval|stepsByInterval$EndOrDay,
+       main="Average Steps per Day by Interval",xlab="Interval", 
+       ylab="Steps",layout=c(1,2), type="l")
+
+```
