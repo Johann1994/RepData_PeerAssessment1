@@ -1,83 +1,97 @@
----
-title: "Fitness Data"
-output:
-  md_document:
-    variant: markdown_github
----
-
-```{r setup, include=FALSE}
-Sys.setlocale("LC_TIME","English")
-knitr::opts_chunk$set(echo = TRUE)
-```
-##1. Loading and preprocessing the data
+1. Loading and preprocessing the data
+-------------------------------------
 
 Unzip the data and load it in a data frame
-```{r}
+
+``` r
 unzip("activity.zip")
 activitydata <- read.csv("activity.csv")
 ```
 
-##What is mean total number of steps taken per day?
+What is mean total number of steps taken per day?
+-------------------------------------------------
 
 Make a sum of all steps per day.
-```{r}
+
+``` r
 library(ggplot2)
 StepsPerDay <- aggregate(steps ~ date, data = activitydata, FUN = sum)
 qplot(StepsPerDay$steps, main = "Steps taken per day", xlab = "steps", 
       binwidth = 500)
+```
+
+![](PA1_template_files/figure-markdown_github/unnamed-chunk-2-1.png)
+
+``` r
 rmean <- mean(StepsPerDay$steps)
 rmedian <- median(StepsPerDay$steps)
 ```
 
-The average is `r rmean` and the median is `r rmedian`
+The average is 1.076618910^{4} and the median is 10765
 
-##What is the average daily activity pattern?
+What is the average daily activity pattern?
+-------------------------------------------
 
 Calculate the average for the steps for each interval
-```{r}
+
+``` r
 stepsPerInterval<- aggregate(steps ~ interval, data = activitydata, FUN = mean)
 qplot(stepsPerInterval$interval, stepsPerInterval$steps,
 main = "Average daily steps", xlab = "interval",ylab = "steps", geom = "line")
+```
+
+![](PA1_template_files/figure-markdown_github/unnamed-chunk-3-1.png)
+
+``` r
 selection <- max(stepsPerInterval$steps) == stepsPerInterval$steps
 maxSteps <- stepsPerInterval$interval[selection]
 ```
 
-The maximum steps are in this interval `r maxSteps`
+The maximum steps are in this interval 835
 
-## Imputing missing values
+Imputing missing values
+-----------------------
 
 How many missing values in the data frame
-```{r}
+
+``` r
 sapply(activitydata, function(x) sum(is.na(x)))
 ```
 
-Only in the steps column datas are missing. This missing values are replaced,
-with the steps per interval average. 
+    ##    steps     date interval 
+    ##     2304        0        0
 
-```{r}
+Only in the steps column datas are missing. This missing values are replaced, with the steps per interval average.
+
+``` r
 imputed_data <- transform(activitydata, steps = ifelse(is.na(activitydata$steps), stepsPerInterval$steps[match(activitydata$interval,
                         stepsPerInterval$interval)], activitydata$steps))
 imputed_dataDay <- aggregate(steps~ date, data = imputed_data, FUN = sum)
 qplot(imputed_dataDay$steps, main = "Steps taken per day", xlab = "steps",
       binwidth = 500)
+```
+
+![](PA1_template_files/figure-markdown_github/unnamed-chunk-5-1.png)
+
+``` r
 rimputmean <- mean(imputed_dataDay$steps)
 rimputmedian <- median(imputed_dataDay$steps)
 diffmean <- rimputmean - rmean
 diffmedian <- rimputmedian - rmedian
 ```
 
-The average is `r rimputmean` the median is `r rimputmedian`
+The average is 1.076618910^{4} the median is 1.076618910^{4}
 
-This makes an average difference from `r diffmean`
+This makes an average difference from 0
 
-This makes an median difference from `r diffmedian`
+This makes an median difference from 1.1886792
 
-##Are there differences in activity patterns between weekdays and weekends?
+Are there differences in activity patterns between weekdays and weekends?
+-------------------------------------------------------------------------
 
-On weekdays there is a higher peak in the morning, in the weekend there is 
-more overall activity.
+On weekdays there is a higher peak in the morning, in the weekend there is more overall activity.
 
-```{r}
+``` r
 weekdays <- c("Monday", "Tuesday", "Wednesday", "Thursday", 
               "Friday")
 activitydata$EndOrDay <- as.factor(ifelse(is.element
@@ -91,5 +105,6 @@ library(lattice)
 xyplot(stepsByInterval$steps ~ stepsByInterval$interval|stepsByInterval$EndOrDay,
        main="Average Steps per Day by Interval",xlab="Interval", 
        ylab="Steps",layout=c(1,2), type="l")
-
 ```
+
+![](PA1_template_files/figure-markdown_github/unnamed-chunk-6-1.png)
